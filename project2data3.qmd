@@ -1,0 +1,84 @@
+---
+title: "Project#2-Data3"
+format: html
+editor: visual
+---
+
+## 
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+
+url <- "https://raw.githubusercontent.com/AslamF/DATA607-Project-2/refs/heads/main/Laptop%20Price%20Dataset.csv"
+
+raw_data <- read.csv(url)
+glimpse(raw_data)
+
+```
+
+```{r}
+
+tidy_laptops <- raw_data |>
+  pivot_longer(
+    cols      = c(Inches, ScreenResolution, Cpu, Ram, Memory, Gpu, OpSys, Weight),
+    names_to  = "spec",           # column names become values in "spec"
+    values_to = "spec_value"      # the values go into "spec_value"
+  )
+
+
+tidy_laptops <- tidy_laptops |>
+  rename_with(tolower) |>
+  rename(
+    laptop_id  = unnamed..0,
+    brand      = company,
+    type       = typename
+  ) |>
+  mutate(
+    price = as.numeric(gsub("[^0-9.]", "", as.character(price)))
+  )
+
+
+tidy_laptops <- tidy_laptops |>
+  filter(!is.na(spec_value), spec_value != "", !is.na(price))
+
+#  Convert price from INR to USD
+tidy_laptops <- tidy_laptops |>
+  mutate(price_usd = round(price * 0.012, 2))
+
+tidy_laptops |>
+  print(n = 20)
+```
+
+## Analysis for average price by ram 
+
+```{r}
+tidy_laptops |>
+  filter(spec == "Ram") |>
+  group_by(spec_value) |>
+  summarise(avg_price = round(mean(price, na.rm = TRUE), 2)) |>
+  arrange(desc(avg_price)) |>
+  print()
+
+tidy_laptops |>
+  filter(spec == "Ram") |>
+  group_by(spec_value) |>
+  summarise(avg_price = mean(price_usd, na.rm = TRUE)) |>
+  ggplot(aes(x = reorder(spec_value, avg_price), y = avg_price)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Average Laptop Price by RAM",
+    x     = "RAM",
+    y     = "Average Price (USD)"
+  ) +
+  theme_minimal()
+```
+
+## Conclusion
+
+The Dataset required significant cleaning before analysis was done. Names were inconsistent and price column had non-numeric values. After completing the assignment I was shocked to see the price for a laptop being 150,000... This caused me to re-look at the data and realize the price was being shown in Indian Rupees! I had to go back and mutate the data with an appropriate conversion and then show the USD amount which is easier to interperet and understand. The data is very clear, More RAM means a higher price. 32GB will cost a significant premium and the average user at 8gb of RAM should look to spend around 750 USD.
