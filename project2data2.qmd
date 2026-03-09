@@ -1,0 +1,81 @@
+---
+title: "Project#2-Data2"
+format: html
+editor: visual
+---
+
+## Approach
+
+## Code Base 
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+```
+
+```{r}
+takeout_spending <- data.frame(
+  Generation = c("Gen Z", "Millennials", "Gen X", "Baby Boomers", "Silent Gen"),
+  `Jan.2025` = c(185, 240, 195, 120, 75),
+  `Feb.2025` = c(172, 228, 188, 115, 70),
+  `Mar.2025` = c(198, 255, 205, 130, 82),
+  `Apr.2025` = c(210, 270, 215, 140, 88),
+  `May.2025` = c(205, 265, 210, 135, 85),
+  `Jun.2025` = c(225, 285, 220, 145, 90),
+  check.names = FALSE
+)
+
+# ── Save as CSV ──────────────────────────────────────────────────
+write.csv(takeout_spending, "takeout_spending.csv", row.names = FALSE)
+```
+
+```{r}
+url <- "https://raw.githubusercontent.com/AslamF/DATA607-Project-2/refs/heads/main/takeout_spending.csv"
+
+raw_data <- read.csv(url)
+
+glimpse(raw_data)
+```
+
+### Convert from wide data 
+
+```{r}
+tidy_spending <- raw_data |>
+  pivot_longer(
+    cols      = -Generation,        # pivot everything EXCEPT Generation
+    names_to  = "month",            # column names become values in "month"
+    values_to = "spending"          # numbers go into "spending"
+  )
+
+## Rename and standarize naming 
+
+tidy_spending <- tidy_spending |>
+  rename_with(tolower) |>           # lowercase all column names
+  mutate(
+    month = gsub("\\.", "-", month),          # fix "Jan.2025" → "Jan-2025"
+    month = as.Date(paste0("01-", month),     # convert to proper Date
+                    format = "%d-%b-%Y")
+  )
+
+tidy_spending |>
+  print(n = 20)
+```
+
+```{r}
+ggplot(tidy_spending, aes(x = month, y = spending, color = generation, group = generation)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 1) +
+  labs(
+    title  = "Monthly Takeout Spending Trends by Generation (2025)",
+    x      = "Month",
+    y      = "Average Spending ($)",
+    color  = "Generation"
+  ) +
+  theme_minimal()
+```
+
+## Conclusion 
+
+Millennials consistently led takeout spending in early 2025 with a peak of \$285.00. Every generation had an upward trend although some is less noticable such as silent g and baby boomers. Younger generations spend more on takeout than older generations however all groups have an increasing trend to spend on takeout.
