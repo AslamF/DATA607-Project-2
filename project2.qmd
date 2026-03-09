@@ -1,0 +1,94 @@
+---
+title: "Project2"
+format: html
+editor: visual
+---
+
+## Approach
+
+## Code Base 
+
+### Load Libraries 
+
+```{r}
+library(tidyr)   
+library(dplyr)    
+library(ggplot2)
+```
+
+### Import Data 
+
+```{r}
+url <- "https://raw.githubusercontent.com/AslamF/DATA607-Project-2/refs/heads/main/country_vaccinations.csv"
+
+raw_data <- read.csv(url)
+
+glimpse(raw_data)
+```
+
+### Identify wide columns we want to collapse and clean up
+
+```{r}
+
+metric_cols <- c(
+  "total_vaccinations",
+  "people_vaccinated",
+  "people_fully_vaccinated",
+  "daily_vaccinations_raw",
+  "daily_vaccinations",
+  "total_vaccinations_per_hundred",
+  "people_vaccinated_per_hundred",
+  "people_fully_vaccinated_per_hundred",
+  "daily_vaccinations_per_million"
+)
+
+tidy_data <- raw_data |>
+  pivot_longer(
+    cols      = all_of(metric_cols),   # pivot ONLY these columns
+    names_to  = "metric",              # column names become values in "metric"
+    values_to = "value"                # the numbers go into "value"
+  )
+
+tidy_data <- tidy_data |>
+  rename_with(tolower) |>             # ensure ALL column names are lowercase
+  rename(
+    country_name = country,           # more descriptive name
+    iso          = iso_code,          # shorter, consistent
+    vaccine_used = vaccines           # clarify what this column means
+  ) |>
+  mutate(
+    date = as.Date(date),             # convert from string to proper Date type
+    metric = gsub("_", " ", metric)   # make metric labels more readable
+  )
+
+## handle missing vlaue in data 
+
+tidy_data <- tidy_data |>
+  filter(!is.na(value))
+
+
+tidy_data |>
+  head(20) |>
+  print(n = 20)
+
+```
+
+```{r}
+# ── Analysis 1: Top 20 countries by % of people fully vaccinated ──
+fully_vax <- tidy_data |>
+  filter(metric == "people fully vaccinated per hundred") |>
+  group_by(country_name) |>
+  slice_max(date, n = 1) |>           # most recent snapshot per country
+  ungroup() |>
+  slice_max(value, n = 20)
+
+ggplot(fully_vax, aes(x = reorder(country_name, value), y = value)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Top 20 Countries by Full Vaccination Rate",
+    x     = "Country",
+    y     = "People Fully Vaccinated per 100"
+  ) +
+  theme_minimal()
+```
